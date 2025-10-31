@@ -7,18 +7,11 @@
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest run",
-    "deploy": "wrangler deploy",
-    "post-cta-init": "npx create-db@latest",
-    "db:generate": "dotenv -e .env.local -- prisma generate",
-    "db:push": "dotenv -e .env.local -- prisma db push",
-    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
-    "db:studio": "dotenv -e .env.local -- prisma studio",
-    "db:seed": "dotenv -e .env.local -- prisma db seed"
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.49.0",
     "@cloudflare/vite-plugin": "^1.13.8",
-    "@prisma/client": "^6.16.3",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",
     "@tanstack/react-form": "^1.0.0",
@@ -32,8 +25,6 @@
     "@tanstack/router-plugin": "^1.132.0",
     "@tanstack/store": "^0.7.0",
     "lucide-react": "^0.544.0",
-    "pg": "^8.11.0",
-    "prisma": "^6.16.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.0.6",
@@ -46,7 +37,6 @@
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^22.10.2",
-    "@types/pg": "^8.10.0",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^5.0.4",
@@ -58,8 +48,5 @@
     "vitest": "^3.0.5",
     "web-vitals": "^5.1.0",
     "wrangler": "^4.40.3"
-  },
-  "prisma": {
-    "seed": "ts-node seed.ts"
   }
 }
