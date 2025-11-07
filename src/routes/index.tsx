@@ -33,7 +33,7 @@ function App() {
             The Hottest Sneakers in the Market
           </p>
           <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto mb-8 drop-shadow-md">
-            Get the best deals on the most sought-after sneakers. Shop online, pick up in-store.
+            Discover premium sneakers from the most sought-after brands. Shop online, pick up in-store.
           </p>
           <Link
             to="/shop"
@@ -55,7 +55,7 @@ function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
               <h3 className="text-2xl md:text-3xl font-bold text-white mb-4 uppercase tracking-tight">
-                The Best Sneakers at Great Deals
+                Premium Sneakers, Authentic Quality
               </h3>
               <p className="text-lg text-gray-300 mb-4 leading-relaxed">
                 At Lexii, we specialize in bringing you the hottest sneakers on the market right now. 
@@ -63,8 +63,8 @@ function App() {
                 that everyone is talking about.
               </p>
               <p className="text-lg text-gray-300 mb-4 leading-relaxed">
-                What sets us apart? We offer these premium sneakers at unbeatable prices. 
-                You get authentic, high-quality kicks without breaking the bank.
+                What sets us apart? We offer only authentic, premium sneakers from top-tier brands. 
+                Every pair in our collection is carefully selected for quality, style, and exclusivity.
               </p>
               <p className="text-lg text-gray-300 leading-relaxed">
                 Located in the heart of Modesto, CA at Vintage Faire Mall, we make it easy to shop 
@@ -80,9 +80,9 @@ function App() {
                 </p>
               </div>
               <div className="p-6 bg-gray-900 rounded-lg border border-gray-800">
-                <h4 className="text-xl font-bold text-white mb-2 uppercase">Great Deals</h4>
+                <h4 className="text-xl font-bold text-white mb-2 uppercase">Premium Quality</h4>
                 <p className="text-gray-400">
-                  Premium quality at prices that won't empty your wallet. Authentic sneakers, fair prices.
+                  Only authentic, top-tier sneakers from the world's most respected brands. Every pair is verified for quality.
                 </p>
               </div>
               <div className="p-6 bg-gray-900 rounded-lg border border-gray-800">
@@ -158,7 +158,7 @@ function App() {
             Ready to Find Your Perfect Pair?
           </h2>
           <p className="text-xl text-gray-400 mb-10">
-            Browse our full inventory of hot sneakers at unbeatable prices.
+            Browse our curated collection of premium sneakers from the world's top brands.
           </p>
           <Link
             to="/shop"
