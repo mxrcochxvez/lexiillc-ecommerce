@@ -17,9 +17,7 @@ const config = defineConfig({
     netlify(),
   ],
   ssr: {
-    // Don't externalize sneaks-api and its dependencies - bundle them instead
-    // Note: Including common dependencies to avoid missing module errors
-    noExternal: ['sneaks-api', 'express', 'body-parser', 'depd'],
+    // No external dependencies to bundle - using REST API instead of npm packages
   },
   build: {
     ssr: true,

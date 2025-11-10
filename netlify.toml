@@ -7,6 +7,4 @@
   SECRETS_SCAN_OMIT_KEYS = "CLOVER_API_BASE_URL"
 
 [functions]
-  # Include all node_modules for serverless functions
-  # This ensures all dependencies (including transitive ones) are available
-  included_files = ["node_modules/**"]
+  # No additional files needed - using REST API instead of npm packages
