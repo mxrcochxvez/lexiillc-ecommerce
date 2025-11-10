@@ -18,7 +18,7 @@ const config = defineConfig({
   ],
   ssr: {
     // Don't externalize sneaks-api and its dependencies - bundle them instead
-    noExternal: ['sneaks-api', 'express'],
+    noExternal: ['sneaks-api', 'express', 'body-parser'],
   },
   build: {
     ssr: true,
