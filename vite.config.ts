@@ -16,6 +16,19 @@ const config = defineConfig({
     viteReact(),
     netlify(),
   ],
+  ssr: {
+    // Don't externalize sneaks-api - bundle it instead
+    noExternal: ['sneaks-api'],
+  },
+  build: {
+    ssr: true,
+    rollupOptions: {
+      output: {
+        // Ensure sneaks-api is bundled
+        format: 'es',
+      },
+    },
+  },
 })
 
 export default config

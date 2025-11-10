@@ -5,3 +5,7 @@
 [build.environment]
   NODE_VERSION = "22"
   SECRETS_SCAN_OMIT_KEYS = "CLOVER_API_BASE_URL"
+
+[functions]
+  # Include sneaks-api package for serverless functions
+  included_files = ["node_modules/sneaks-api/**"]
