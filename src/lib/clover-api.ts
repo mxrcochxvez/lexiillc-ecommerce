@@ -87,7 +87,21 @@ async function fetchCloverInventoryPage(
     throw new Error(errorMessage)
   }
 
-  const data = await response.json()
+  // Check if response has content before parsing
+  const responseText = await response.text()
+  if (!responseText || responseText.trim().length === 0) {
+    console.warn('Empty response from Clover API, returning empty array')
+    return { items: [], nextUrl: null }
+  }
+
+  let data
+  try {
+    data = JSON.parse(responseText)
+  } catch (parseError) {
+    console.error('Failed to parse Clover API response as JSON:', parseError)
+    console.error('Response text:', responseText.substring(0, 200))
+    throw new Error(`Invalid JSON response from Clover API: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
+  }
 
   // Clover API returns items in a 'elements' array with pagination info
   let items: CloverItem[] = []
@@ -143,30 +157,48 @@ async function fetchCloverInventoryInternal(): Promise<CloverItem[]> {
 
   // Start with the initial URL - Clover API typically supports limit parameter
   // Using limit=1000 to get as many items as possible per page
-  const initialUrl = `${CLOVER_API_BASE_URL}/v3/merchants/${CLOVER_MERCHANT_ID}/items?limit=1000`
+  // If that fails, we'll try without the limit parameter
+  let initialUrl = `${CLOVER_API_BASE_URL}/v3/merchants/${CLOVER_MERCHANT_ID}/items?limit=1000`
 
   try {
     const allItems: CloverItem[] = []
     let currentUrl: string | null = initialUrl
     let pageCount = 0
     const maxPages = 100 // Safety limit to prevent infinite loops
+    let useLimit = true
 
     // Fetch all pages
     while (currentUrl && pageCount < maxPages) {
-      const { items, nextUrl } = await fetchCloverInventoryPage(currentUrl, CLOVER_API_TOKEN)
-      allItems.push(...items)
-      
-      // If we got fewer items than the limit, we're on the last page
-      if (items.length < 1000) {
-        break
-      }
+      try {
+        const { items, nextUrl } = await fetchCloverInventoryPage(currentUrl, CLOVER_API_TOKEN)
+        allItems.push(...items)
+        
+        // If we got fewer items than the limit, we're on the last page
+        if (useLimit && items.length < 1000) {
+          break
+        }
+        
+        // If no next URL and we have items, we're done
+        if (!nextUrl) {
+          break
+        }
 
-      currentUrl = nextUrl
-      pageCount++
+        currentUrl = nextUrl
+        pageCount++
 
-      // Small delay between pages to avoid rate limiting
-      if (currentUrl && pageCount < maxPages) {
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        // Small delay between pages to avoid rate limiting
+        if (currentUrl && pageCount < maxPages) {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+      } catch (pageError) {
+        // If first page fails with limit parameter, try without it
+        if (pageCount === 0 && useLimit && currentUrl.includes('limit=')) {
+          console.warn('Initial request with limit parameter failed, retrying without limit')
+          useLimit = false
+          currentUrl = `${CLOVER_API_BASE_URL}/v3/merchants/${CLOVER_MERCHANT_ID}/items`
+          continue
+        }
+        throw pageError
       }
     }
 
