@@ -49,11 +49,22 @@ async function verifyCloverConnection(
 }
 
 /**
- * Internal function to fetch a single page of Clover inventory
+ * Sleep utility with jitter to avoid thundering herd
+ */
+async function sleep(ms: number): Promise<void> {
+  // Add small random jitter (±20%) to avoid synchronized requests
+  const jitter = ms * 0.2 * (Math.random() * 2 - 1)
+  await new Promise((resolve) => setTimeout(resolve, ms + jitter))
+}
+
+/**
+ * Internal function to fetch a single page of Clover inventory with retry logic
  */
 async function fetchCloverInventoryPage(
   url: string,
-  token: string
+  token: string,
+  retryCount = 0,
+  maxRetries = 3
 ): Promise<{ items: CloverItem[]; nextUrl: string | null }> {
   const response = await fetch(url, {
     method: 'GET',
@@ -62,6 +73,46 @@ async function fetchCloverInventoryPage(
       'Content-Type': 'application/json',
     },
   })
+
+  // Check rate limit headers if available (for monitoring)
+  const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining')
+  const rateLimitReset = response.headers.get('X-RateLimit-Reset')
+  if (rateLimitRemaining && parseInt(rateLimitRemaining, 10) < 10) {
+    console.warn(
+      `Rate limit remaining: ${rateLimitRemaining}. Reset at: ${rateLimitReset || 'unknown'}`
+    )
+  }
+
+  // Handle rate limiting (429 Too Many Requests) and transient errors
+  if (response.status === 429 || response.status === 503 || response.status === 502) {
+    const retryAfter = response.headers.get('Retry-After')
+    let waitTime = 1000 // Default 1 second
+    
+    if (retryAfter) {
+      // Retry-After can be seconds (number) or HTTP date
+      const retryAfterNum = parseInt(retryAfter, 10)
+      if (!isNaN(retryAfterNum)) {
+        waitTime = retryAfterNum * 1000
+      }
+    } else {
+      // Exponential backoff: 1s, 2s, 4s, 8s
+      waitTime = Math.min(1000 * Math.pow(2, retryCount), 8000)
+    }
+
+    if (retryCount < maxRetries) {
+      const statusText = response.status === 429 ? 'Rate limited' : `Server error (${response.status})`
+      console.warn(
+        `${statusText}. Retrying after ${waitTime}ms (attempt ${retryCount + 1}/${maxRetries})`
+      )
+      await sleep(waitTime)
+      return fetchCloverInventoryPage(url, token, retryCount + 1, maxRetries)
+    } else {
+      const errorType = response.status === 429 ? 'Rate limited' : `Server error (${response.status})`
+      throw new Error(
+        `${errorType} after ${maxRetries} retries. Please wait before making more requests.`
+      )
+    }
+  }
 
   if (!response.ok) {
     const errorText = await response.text()
@@ -186,9 +237,10 @@ async function fetchCloverInventoryInternal(): Promise<CloverItem[]> {
         currentUrl = nextUrl
         pageCount++
 
-        // Small delay between pages to avoid rate limiting
+        // Delay between pages to avoid rate limiting
+        // Using 500ms base delay with jitter to be more conservative
         if (currentUrl && pageCount < maxPages) {
-          await new Promise((resolve) => setTimeout(resolve, 100))
+          await sleep(500)
         }
       } catch (pageError) {
         // If first page fails with limit parameter, try without it
