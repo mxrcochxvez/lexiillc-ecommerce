@@ -5,6 +5,22 @@ import type { EnrichedInventoryItem } from '../types/inventory'
 import { ShoppingBag, Loader2, AlertCircle, Search, Filter, X, ArrowLeft } from 'lucide-react'
 
 export const Route = createFileRoute('/shop/$brand')({
+  beforeLoad: ({ params, location }) => {
+    const brand = decodeURIComponent(params.brand)
+    // Check if it's a product ID (12+ chars, all uppercase/numbers)
+    const isLikelyProductId = brand.length >= 12 && /^[A-Z0-9]+$/.test(brand)
+    
+    if (isLikelyProductId) {
+      console.log('[BrandPage] beforeLoad: Redirecting product ID to product page:', brand)
+      // Redirect to product page
+      throw new Response(null, {
+        status: 307,
+        headers: {
+          Location: `/shop/${encodeURIComponent(params.brand)}`,
+        },
+      })
+    }
+  },
   component: BrandShopPage,
 })
 
@@ -15,34 +31,8 @@ function BrandShopPage() {
   const brand = decodeURIComponent(brandParam)
   const navigate = Route.useNavigate()
 
-  // Early check: If it looks like a product ID, redirect immediately
-  // Product IDs are long alphanumeric strings (12+ chars, all uppercase/numbers)
-  // Brand names are short (typically 1-20 chars) and may contain spaces/hyphens
-  const isLikelyProductId = brand.length >= 12 && /^[A-Z0-9]+$/.test(brand)
-  
-  // Immediate redirect if it's clearly a product ID
-  useEffect(() => {
-    if (isLikelyProductId) {
-      console.log('[BrandPage] Detected product ID, redirecting:', { brand, brandParam, isLikelyProductId })
-      navigate({ to: '/shop/$id', params: { id: brandParam }, replace: true }).catch((err) => {
-        console.error('[BrandPage] Redirect error:', err)
-      })
-      return
-    }
-  }, [isLikelyProductId, brandParam, navigate, brand])
-
-  // If redirecting, show loading state
-  if (isLikelyProductId) {
-    console.log('[BrandPage] Showing loading state for product ID redirect')
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-white" />
-          <p className="text-gray-400 text-lg">Loading product...</p>
-        </div>
-      </div>
-    )
-  }
+  // Note: Product ID detection and redirect now happens in beforeLoad
+  // This code only runs for actual brand pages
 
   // For brand page, we need all items to filter by brand
   // Use infinite query to load all items
