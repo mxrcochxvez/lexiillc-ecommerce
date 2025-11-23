@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useParams } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import type { EnrichedInventoryItem } from '../types/inventory'
 import { ShoppingBag, Loader2, AlertCircle, Search, Filter, X, ArrowLeft } from 'lucide-react'
 
@@ -13,6 +13,7 @@ type SortOption = 'price-low' | 'price-high' | 'name-asc' | 'name-desc' | 'newes
 function BrandShopPage() {
   const { brand: brandParam } = Route.useParams()
   const brand = decodeURIComponent(brandParam)
+  const navigate = Route.useNavigate()
 
   const { data: inventory, isLoading, error } = useQuery<EnrichedInventoryItem[]>({
     queryKey: ['inventory'],
@@ -24,6 +25,42 @@ function BrandShopPage() {
       return response.json()
     },
   })
+
+  // Check if the brand param is actually a product ID (not a brand name)
+  // Product IDs are typically long alphanumeric strings, while brand names are short words
+  const isLikelyProductId = useMemo(() => {
+    // If it's a long alphanumeric string (like Clover IDs), it's probably a product ID
+    // Brand names are typically short (1-20 chars) and contain spaces/hyphens
+    return brand.length > 15 && /^[A-Z0-9]+$/.test(brand)
+  }, [brand])
+
+  // Get all valid brand names from inventory
+  const validBrands = useMemo(() => {
+    if (!inventory) return new Set<string>()
+    const brands = new Set(
+      inventory
+        .map((item) => item.brand)
+        .filter((b): b is string => Boolean(b))
+        .map((b) => b.toLowerCase())
+    )
+    return brands
+  }, [inventory])
+
+  // If it looks like a product ID or isn't a valid brand, redirect to product page
+  useEffect(() => {
+    if (inventory && !isLoading && !error) {
+      const normalizedBrand = brand.toLowerCase()
+      const isValidBrand = validBrands.has(normalizedBrand)
+      
+      // Check if it's a product ID by looking it up in inventory
+      const isProductId = inventory.some((item) => item.id === brand || item.id === brandParam)
+      
+      if ((isLikelyProductId || isProductId) && !isValidBrand) {
+        // This is likely a product ID, redirect to product detail page
+        navigate({ to: '/shop/$id', params: { id: brandParam }, replace: true })
+      }
+    }
+  }, [inventory, brand, brandParam, isLikelyProductId, validBrands, isLoading, error, navigate])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSize, setSelectedSize] = useState<string>('')

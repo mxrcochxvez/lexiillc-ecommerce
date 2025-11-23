@@ -11,12 +11,18 @@ export async function getEnrichedInventory(): Promise<EnrichedInventoryItem[]> {
     // Fetch inventory from Clover
     const cloverItems = await fetchCloverInventoryServer()
 
+    // Filter out items with $0 price or no price
+    const validItems = cloverItems.filter((item) => {
+      // Exclude items with price of 0, undefined, or null
+      return item.price !== undefined && item.price !== null && item.price > 0
+    })
+
     // Process items in batches to enrich with images (with graceful error handling)
     const enrichedItems: EnrichedInventoryItem[] = []
     const batchSize = 10
     
-    for (let i = 0; i < cloverItems.length; i += batchSize) {
-      const batch = cloverItems.slice(i, i + batchSize)
+    for (let i = 0; i < validItems.length; i += batchSize) {
+      const batch = validItems.slice(i, i + batchSize)
       const batchPromises = batch.map(async (item) => {
         try {
           return await enrichInventoryItem(item)
@@ -31,7 +37,7 @@ export async function getEnrichedInventory(): Promise<EnrichedInventoryItem[]> {
       enrichedItems.push(...batchResults)
 
       // Small delay between batches to avoid overwhelming the API
-      if (i + batchSize < cloverItems.length) {
+      if (i + batchSize < validItems.length) {
         await new Promise((resolve) => setTimeout(resolve, 200))
       }
     }
