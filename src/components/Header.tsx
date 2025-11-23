@@ -133,8 +133,9 @@ export default function Header() {
           
           {/* Dropdown Menu */}
           {isShopHovered && manufacturers.length > 0 && (
-            <div className="absolute top-full left-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
-              <div className="py-2">
+            <div className="absolute top-full left-0 pt-2 w-48">
+              <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
+                <div className="py-2">
                 <Link
                   to="/shop"
                   className="block px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
@@ -151,6 +152,7 @@ export default function Header() {
                     {brand}
                   </Link>
                 ))}
+                </div>
               </div>
             </div>
           )}
