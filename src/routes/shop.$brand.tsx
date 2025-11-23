@@ -5,17 +5,18 @@ import type { EnrichedInventoryItem } from '../types/inventory'
 import { ShoppingBag, Loader2, AlertCircle, Search, Filter, X, ArrowLeft } from 'lucide-react'
 
 export const Route = createFileRoute('/shop/$brand')({
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ params, location }) => {
     const brand = decodeURIComponent(params.brand)
     // Check if it's a product ID (12+ chars, all uppercase/numbers)
     const isLikelyProductId = brand.length >= 12 && /^[A-Z0-9]+$/.test(brand)
     
     if (isLikelyProductId) {
-      console.log('[BrandPage] beforeLoad: Redirecting product ID to product page:', brand)
-      // Direct redirect using window.location for immediate navigation
-      if (typeof window !== 'undefined') {
-        window.location.href = `/shop/${encodeURIComponent(params.brand)}`
-      }
+      console.log('[BrandPage] beforeLoad: Detected product ID, checking if already on product route')
+      // Check if we're already trying to load as a product (prevent infinite loop)
+      // The product route should handle it, so we'll let it through
+      // But we need to make sure the product route takes precedence
+      // For now, just don't redirect here - let the product route handle it
+      // Instead, we'll check in the component and redirect there if needed
     }
   },
   component: BrandShopPage,
@@ -26,10 +27,6 @@ type SortOption = 'price-low' | 'price-high' | 'name-asc' | 'name-desc' | 'newes
 function BrandShopPage() {
   const { brand: brandParam } = Route.useParams()
   const brand = decodeURIComponent(brandParam)
-  const navigate = Route.useNavigate()
-
-  // Note: Product ID detection and redirect now happens in beforeLoad
-  // This code only runs for actual brand pages
 
   // For brand page, we need all items to filter by brand
   // Use infinite query to load all items

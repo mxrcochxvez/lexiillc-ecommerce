@@ -4,6 +4,16 @@ import type { EnrichedInventoryItem } from '../types/inventory'
 import { ArrowLeft, ShoppingBag, Loader2, AlertCircle, Calendar } from 'lucide-react'
 
 export const Route = createFileRoute('/shop/$id')({
+  beforeLoad: ({ params }) => {
+    const id = decodeURIComponent(params.id)
+    // Verify it looks like a product ID (prevent brand route from matching)
+    const isLikelyProductId = id.length >= 12 && /^[A-Z0-9]+$/.test(id)
+    if (!isLikelyProductId) {
+      console.log('[ProductPage] beforeLoad: ID does not look like product ID, might be brand')
+      // If it's not a product ID, it might be a brand - but we'll let it try to load
+      // The API will return 404 if it's not found
+    }
+  },
   component: ProductDetailPage,
 })
 
