@@ -4,7 +4,7 @@
   
 [build.environment]
   NODE_VERSION = "22"
-  SECRETS_SCAN_OMIT_KEYS = "CLOVER_API_BASE_URL"
+  SECRETS_SCAN_OMIT_KEYS = "CLOVER_API_BASE_URL,VITE_HUGGINGFACE_API_KEY,VITE_SUPABASE_ANON_KEY,VITE_SUPABASE_URL"
 
 [functions]
   # No additional files needed - using REST API instead of npm packages
