@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+build
+coverage
+*.local
+.env
+.nitro
+.tanstack
+.output
+.vinxi
+routeTree.gen.ts
+package-lock.json
+
