@@ -19,6 +19,13 @@ const config = defineConfig({
   ],
   ssr: {
     // No external dependencies to bundle - using REST API instead of npm packages
+    resolve: {
+      conditions: ['node'],
+      external: [],
+    },
+  },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs'],
   },
   build: {
     ssr: true,
