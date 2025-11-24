@@ -174,12 +174,13 @@ function App() {
 }
 
 function ManufacturersSection() {
-  const { data: inventory, isLoading } = useQuery<EnrichedInventoryItem[]>({
-    queryKey: ['inventory'],
+  // Use metadata endpoint to get brands efficiently
+  const { data: metadata, isLoading } = useQuery<{ brands: string[]; total: number }>({
+    queryKey: ['inventory-metadata'],
     queryFn: async () => {
-      const response = await fetch('/api/inventory')
+      const response = await fetch('/api/inventory?all=true')
       if (!response.ok) {
-        throw new Error('Failed to fetch inventory')
+        throw new Error('Failed to fetch inventory metadata')
       }
       return response.json()
     },
@@ -230,12 +231,10 @@ function ManufacturersSection() {
 
   // Get unique manufacturers (filtered to only valid brands)
   const manufacturers = useMemo(() => {
-    if (!inventory) return []
-    const normalizedBrands = inventory
-      .map((item) => {
-        if (!item.brand) return null
-        return normalizeBrand(item.brand)
-      })
+    if (!metadata?.brands || !Array.isArray(metadata.brands)) return []
+    
+    const normalizedBrands = metadata.brands
+      .map((brand) => normalizeBrand(brand))
       .filter((brand): brand is string => {
         if (!brand) return false
         // Check if normalized brand matches any valid brand (case-insensitive)
@@ -254,7 +253,7 @@ function ManufacturersSection() {
       if (indexB !== -1) return 1
       return a.localeCompare(b)
     })
-  }, [inventory])
+  }, [metadata])
 
   if (isLoading) {
     return (

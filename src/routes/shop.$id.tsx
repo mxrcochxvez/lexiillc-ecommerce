@@ -2,18 +2,9 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import type { EnrichedInventoryItem } from '../types/inventory'
 import { ArrowLeft, ShoppingBag, Loader2, AlertCircle, Calendar } from 'lucide-react'
+import AddToCartButton from '../components/AddToCartButton'
 
 export const Route = createFileRoute('/shop/$id')({
-  beforeLoad: ({ params }) => {
-    const id = decodeURIComponent(params.id)
-    // Verify it looks like a product ID (prevent brand route from matching)
-    const isLikelyProductId = id.length >= 12 && /^[A-Z0-9]+$/.test(id)
-    if (!isLikelyProductId) {
-      console.log('[ProductPage] beforeLoad: ID does not look like product ID, might be brand')
-      // If it's not a product ID, it might be a brand - but we'll let it try to load
-      // The API will return 404 if it's not found
-    }
-  },
   component: ProductDetailPage,
 })
 
@@ -25,24 +16,41 @@ function ProductDetailPage() {
   const { data: product, isLoading, error } = useQuery<EnrichedInventoryItem>({
     queryKey: ['product', id],
     queryFn: async () => {
-      console.log('[ProductDetailPage] Fetching product:', id)
-      // Encode the ID to handle special characters in URLs
-      const encodedId = encodeURIComponent(id)
-      console.log('[ProductDetailPage] Encoded ID:', encodedId)
-      const response = await fetch(`/api/inventory/${encodedId}`)
-      console.log('[ProductDetailPage] Response status:', response.status)
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[ProductDetailPage] Error response:', { status: response.status, errorText })
-        if (response.status === 404) {
-          throw new Error('Product not found')
+      try {
+        // Decode the ID first in case it's double-encoded
+        const decodedId = decodeURIComponent(id)
+        // Encode the ID to handle special characters in URLs
+        const encodedId = encodeURIComponent(decodedId)
+        const response = await fetch(`/api/inventory/${encodedId}`)
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          let errorMessage = `Failed to fetch product: ${response.status}`
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMessage = errorData.error || errorData.message || errorMessage
+          } catch {
+            // If error text is not JSON, use it as is
+            if (errorText) errorMessage = errorText
+          }
+          
+          if (response.status === 404) {
+            throw new Error('Product not found')
+          }
+          throw new Error(errorMessage)
         }
-        throw new Error(`Failed to fetch product: ${response.status}`)
+        
+        const data = await response.json()
+        if (!data || !data.id) {
+          throw new Error('Invalid product data received')
+        }
+        return data
+      } catch (error) {
+        console.error('[ProductDetailPage] Error fetching product:', error)
+        throw error
       }
-      const data = await response.json()
-      console.log('[ProductDetailPage] Product loaded:', { id: data.id, name: data.name })
-      return data
     },
+    retry: 1,
   })
   
   console.log('[ProductDetailPage] State:', { isLoading, hasProduct: !!product, error: error?.message })
@@ -226,12 +234,11 @@ function ProductDetailPage() {
 
               {/* Action Buttons */}
               <div className="pt-6 space-y-4">
-                <button 
-                  disabled
-                  className="w-full px-8 py-5 bg-gray-800 text-gray-500 font-bold rounded-lg cursor-not-allowed text-lg uppercase tracking-wider"
-                >
-                  View Mode - Purchases Coming Soon
-                </button>
+                <AddToCartButton
+                  productId={product.id}
+                  disabled={product.stockCount === 0}
+                  className="w-full text-lg"
+                />
                 
                 <a
                   href={`mailto:LexiiLLC24@gmail.com?subject=Inquiry about ${encodeURIComponent(product.name)}&body=Hi Lexii,%0D%0A%0D%0AI'm interested in learning more about: ${encodeURIComponent(product.name)}%0D%0A%0D%0A`}

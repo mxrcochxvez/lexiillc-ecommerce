@@ -40,6 +40,14 @@ export const Route = createFileRoute('/api/inventory/$id')({
             )
           }
 
+          // Check if product is in stock
+          if (product.stockCount !== undefined && product.stockCount !== null && product.stockCount <= 0) {
+            return json(
+              { error: 'Product is out of stock', id: decodedId },
+              { status: 404 }
+            )
+          }
+
           return json(product)
         } catch (error) {
           console.error('Error fetching product:', error)

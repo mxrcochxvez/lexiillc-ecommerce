@@ -55,6 +55,11 @@ export const Route = createFileRoute('/api/inventory')({
           // Enrich ONLY the items for this page (lazy loading!)
           const enrichedItems = await enrichItemsBatch(paginatedRawItems)
 
+          // Filter out items that are out of stock after enrichment
+          const inStockItems = enrichedItems.filter((item) => {
+            return item.stockCount === undefined || item.stockCount === null || item.stockCount > 0
+          })
+
           // Optionally pre-enrich next page in background (non-blocking)
           if (page < totalPages) {
             const nextPageStart = endIndex
@@ -66,13 +71,18 @@ export const Route = createFileRoute('/api/inventory')({
             })
           }
 
+          // Recalculate total based on in-stock items only
+          const totalInStock = rawItems.filter((item) => {
+            return item.stockCount === undefined || item.stockCount === null || item.stockCount > 0
+          }).length
+
           const response: PaginatedResponse = {
-            items: enrichedItems,
-            total: rawItems.length,
+            items: inStockItems,
+            total: totalInStock,
             page,
             pageSize,
-            totalPages,
-            hasMore: page < totalPages,
+            totalPages: Math.ceil(totalInStock / pageSize),
+            hasMore: page < Math.ceil(totalInStock / pageSize),
           }
 
           return json(response)

@@ -2,6 +2,8 @@ import { fetchCloverInventoryServer } from './clover-api'
 import { searchSneaksAPIServer, findBestMatch } from './sneaks-api'
 import { parseShoeName } from './shoe-parser'
 import { getCachedRawInventory, setCachedRawInventory, getCachedEnrichment, setCachedEnrichment } from './inventory-cache'
+import { improveProductName } from './huggingface-api'
+import { searchProductImages } from './image-search'
 import type { EnrichedInventoryItem } from '../types/inventory'
 import type { CloverItem } from '../types/inventory'
 
@@ -18,9 +20,11 @@ export async function getRawInventory(): Promise<CloverItem[]> {
   // Fetch from Clover
   const cloverItems = await fetchCloverInventoryServer()
 
-  // Filter out items with $0 price or no price
+  // Filter out items with $0 price, no price, or out of stock
   const validItems = cloverItems.filter((item) => {
-    return item.price !== undefined && item.price !== null && item.price > 0
+    const hasValidPrice = item.price !== undefined && item.price !== null && item.price > 0
+    const isInStock = item.stockCount === undefined || item.stockCount === null || item.stockCount > 0
+    return hasValidPrice && isInStock
   })
 
   // Cache raw items
@@ -85,7 +89,7 @@ export async function getEnrichedInventory(): Promise<EnrichedInventoryItem[]> {
 }
 
 /**
- * Enriches a single inventory item with KicksDB data
+ * Enriches a single inventory item with KicksDB data, HuggingFace name improvement, and image search
  */
 async function enrichInventoryItem(
   item: { id: string; name: string; price?: number; stockCount?: number; [key: string]: unknown }
@@ -93,41 +97,79 @@ async function enrichInventoryItem(
   // Parse the shoe name
   const parsed = parseShoeName(item.name)
 
+  // Improve product name using HuggingFace (if API key is available)
+  // This is optional and will gracefully fail if HuggingFace is unavailable
+  let improvedName = item.name
+  let improvedSearchQuery = parsed.searchQuery
+  
+  // Try to improve the name, but don't let errors break the enrichment process
+  try {
+    improvedName = await improveProductName(item.name)
+    // Only re-parse if we got a different name
+    if (improvedName !== item.name) {
+      const improvedParsed = parseShoeName(improvedName)
+      improvedSearchQuery = improvedParsed.searchQuery || parsed.searchQuery
+    }
+  } catch (error) {
+    // Silently continue with original name - HuggingFace is optional
+  }
+
   // Search Sneaks API for matching products (free, no API key needed)
-  const { products } = await searchSneaksAPIServer(parsed.searchQuery)
+  const { products } = await searchSneaksAPIServer(improvedSearchQuery)
 
   // Find the best match
-  const bestMatch = findBestMatch(parsed.searchQuery, products)
+  const bestMatch = findBestMatch(improvedSearchQuery, products)
+
+  // Try to get images from Unsplash if no match found or no images
+  let imageUrl: string | undefined
+  let images: string[] | undefined
 
   if (bestMatch) {
     // Extract image URL (prefer imageUrl, fallback to first image in images array)
-    const imageUrl =
+    imageUrl =
       bestMatch.imageUrl ||
       (bestMatch.images && bestMatch.images.length > 0 ? bestMatch.images[0] : undefined)
+    images = bestMatch.images
+  }
 
+  // If no images found from Sneaks API, try image search
+  if (!imageUrl && !images) {
+    try {
+      const searchImages = await searchProductImages(improvedSearchQuery)
+      if (searchImages.length > 0) {
+        imageUrl = searchImages[0]
+        images = searchImages
+      }
+    } catch (error) {
+      console.warn(`Failed to search images for ${improvedSearchQuery}:`, error)
+      // Continue without images
+    }
+  }
+
+  if (bestMatch || imageUrl) {
     return {
       id: item.id,
-      name: bestMatch.name || parsed.model || item.name,
+      name: bestMatch?.name || improvedName || parsed.model || item.name,
       originalName: item.name,
-      brand: parsed.brand || bestMatch.brand || '',
-      model: parsed.model || bestMatch.model || '',
+      brand: parsed.brand || bestMatch?.brand || '',
+      model: parsed.model || bestMatch?.model || '',
       size: parsed.size,
       price: item.price,
       stockCount: item.stockCount,
       imageUrl,
-      images: bestMatch.images,
-      colorway: bestMatch.colorway,
-      retailPrice: bestMatch.retailPrice,
-      releaseDate: bestMatch.releaseDate,
+      images,
+      colorway: bestMatch?.colorway,
+      retailPrice: bestMatch?.retailPrice,
+      releaseDate: bestMatch?.releaseDate,
       matched: true,
-      searchQuery: parsed.searchQuery,
+      searchQuery: improvedSearchQuery,
     }
   }
 
   // No match found - return item with parsed data but no image
   return {
     id: item.id,
-    name: item.name,
+    name: improvedName || item.name,
     originalName: item.name,
     brand: parsed.brand,
     model: parsed.model,
@@ -135,7 +177,7 @@ async function enrichInventoryItem(
     price: item.price,
     stockCount: item.stockCount,
     matched: false,
-    searchQuery: parsed.searchQuery,
+    searchQuery: improvedSearchQuery,
   }
 }
 

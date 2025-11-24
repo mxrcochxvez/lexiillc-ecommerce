@@ -3,6 +3,7 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import type { EnrichedInventoryItem } from '../types/inventory'
 import { ShoppingBag, Loader2, AlertCircle, Search, Filter, X } from 'lucide-react'
+import AddToCartButton from '../components/AddToCartButton'
 
 export const Route = createFileRoute('/shop')({
   component: ProductsPage,
@@ -404,11 +405,17 @@ function ProductsPage() {
 }
 
 function ProductCard({ item }: { item: EnrichedInventoryItem }) {
+  const handleAddToCartClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   return (
-    <Link
-      to={`/shop/${item.id}`}
-      className="bg-gray-900 rounded-lg overflow-hidden border border-gray-800 hover:border-gray-600 transition-all duration-300 group hover:shadow-2xl hover:shadow-white/10 block"
-    >
+    <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-800 hover:border-gray-600 transition-all duration-300 group hover:shadow-2xl hover:shadow-white/10">
+      <Link
+        to={`/shop/${item.id}`}
+        className="block"
+      >
       {/* Image */}
       <div className="aspect-square bg-gray-800 relative overflow-hidden">
         {item.imageUrl ? (
@@ -469,6 +476,15 @@ function ProductCard({ item }: { item: EnrichedInventoryItem }) {
           </p>
         )}
       </div>
-    </Link>
+      </Link>
+      <div className="p-5 pt-0" onClick={handleAddToCartClick}>
+        <AddToCartButton
+          productId={item.id}
+          disabled={item.stockCount === 0}
+          className="w-full"
+          variant="outline"
+        />
+      </div>
+    </div>
   )
 }

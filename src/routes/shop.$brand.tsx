@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams, redirect } from '@tanstack/react-router'
+import { createFileRoute, Link, useParams, redirect, useNavigate } from '@tanstack/react-router'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import React, { useState, useMemo, useEffect } from 'react'
 import type { EnrichedInventoryItem } from '../types/inventory'
@@ -28,6 +28,7 @@ type SortOption = 'price-low' | 'price-high' | 'name-asc' | 'name-desc' | 'newes
 function BrandShopPage() {
   const { brand: brandParam } = Route.useParams()
   const brand = decodeURIComponent(brandParam)
+  const navigate = useNavigate()
 
   // For brand page, we need all items to filter by brand
   // Use infinite query to load all items
