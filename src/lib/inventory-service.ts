@@ -148,7 +148,6 @@ function convertSizeToStandard(sizeStr: string): 'S' | 'M' | 'L' | 'XL' | 'XXL' 
   
   return undefined
 }
-}
 
 /**
  * Creates a fallback item when enrichment fails
